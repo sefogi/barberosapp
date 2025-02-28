@@ -4,6 +4,7 @@ from datetime import datetime
 
 class Barber(BaseModel):
     name: str = "Barber"
+    
     location: str = "barcelona"
     neighborhood: str = "poble sec"
     # latitude: float = 0.123
@@ -31,6 +32,6 @@ class Service(BaseModel):
 
 class Payment(BaseModel):
     service_id: str = "1"
-    amount: float = 10.0
+    amount: float = 15.0
     payment_method: str = "cash"
     status: str = "pending"
