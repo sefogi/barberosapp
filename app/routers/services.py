@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/", response_model=Service)
 async def create_service(service: ServiceCreate, db: AsyncIOMotorDatabase = Depends(get_database)):
     new_service = Service(**service.model_dump(), date=datetime.now())
-    result = await db.services.insert_one(new_service.dict())
+    result = await db.services.insert_one(new_service.model_dump())
     created_service = await db.services.find_one({"_id": result.inserted_id})
     return Service(**created_service)
 
@@ -50,14 +50,30 @@ async def rate_service(
     )
 
     # Actualizar la calificación del barbero
-    barber = await db.barbers.find_one({"_id": updated_service["barber_id"]})
-    if barber:
-        new_rating = (barber["rating"] + rating) / 2 # aqui deberia ir una logica que promedie con todas las calificaciones.
-        await db.barbers.find_one_and_update(
-            {"_id": updated_service["barber_id"]},
-            {"$set": {"rating": new_rating}},
-        )
+    if updated_service:
+        barber = await db.barbers.find_one({"_id": updated_service["barber_id"]})
+        if barber:
+            # Calculate the new average rating
+            total_ratings = barber.get("total_ratings", 0) + 1
+            new_rating = ((barber["rating"] * barber.get("total_ratings", 0)) + rating) / total_ratings
+            await db.barbers.find_one_and_update(
+                {"_id": updated_service["barber_id"]},
+                {"$set": {"rating": new_rating, "total_ratings": total_ratings}},
+            )
 
-    return Service(**updated_service)
+        return Service(**updated_service)
+    else:
+        raise HTTPException(status_code=404, detail="Service not found")
 
 # Implementa las rutas para actualizar y eliminar servicios aquí
+@router.put("/{service_id}", response_model=Service)
+async  def update_service(service_id: str, service: ServiceCreate, db: AsyncIOMotorDatabase = Depends(get_database)):
+    updated_service = await db.services.find_one_and_update(
+        {"_id": service_id},
+        {"$set": service.model_dump(exclude_unset=True)},
+        return_document=True
+    )
+    if updated_service:
+        return Service(**updated_service)
+    else:
+        raise HTTPException(status_code=404, detail="Service not found")
