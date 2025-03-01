@@ -1,10 +1,10 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
 class Barber(BaseModel):
+    id: Optional[str] = Field(alias="_id")
     name: str = "Barber"
-    
     location: str = "barcelona"
     neighborhood: str = "poble sec"
     # latitude: float = 0.123
